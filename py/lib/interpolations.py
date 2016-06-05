@@ -155,46 +155,19 @@ def __spline_4p(i, n1, p0, p1, p2):
             i*((4-3*i)*i + 1)   * p1 +
             (i-1)*i*i           * p2 ) / 2
 
-def spline(i, *P, **kwargs):
+def spline(i, P, Q=None):
     '''Find a point along a spline curve passing through all given points P.
     Points may be scalars, or vectors if arithmetic operators defined.
-
-    Takes at least three arguments, spline(i, P0, P1), but more typically
-    at least four points are given, spline(i, P0, P1, P2, P3, ...).
-    Interpolated values touch P0 at i==0.0, and touch P1 at i==1.0, and
-    touch the last P<n> at i==<n>.
 
     Unlike most Catmull-Rom splines, this routine allows interpolation
     between the first two points, and between the last two points.  The
-    slope through P1 and P<n-1> are defined as if the P0 and P<n> are
-    duplicated.
+    slope through P[1] and P[<n-1>] are defined as if the P[0] and P[<n>]
+    are duplicated.
 
-    Any value of i outside the range (0, <n>) will return the P0 or P<n>
-    point.
-    '''
-    terminal = kwargs.get('terminal', False)
-    if len(P) < 4:
-        raise ValueError('need at least four points to interpolate spline')
-    if terminal:
-        if i <= 0.0: return P[0]
-        if i >= float(len(P)-1): return P[-1]
-    else:
-        if i <= 1.0: return P[1]
-        if i >= float(len(P)-2): return P[-2]
-    ix = int(i)
-    if terminal:
-        P = [ P[0], ] + list(P) + [ P[-1] ]
-        ix += 1
-    return __spline_4p(i-int(i), P[ix-1], P[ix], P[ix+1], P[ix+2])
-
-def cospline(i, P, Q=None):
-    '''Find a point along a spline curve passing through all given points P.
-    Points may be scalars, or vectors if arithmetic operators defined.
-
-    If given a third argument Q, it should be an ordered list of scalars
-    (matching the length of list P) to compare against the scalar <i>.
-    If not given, then Q is defined to be a smooth progression from 0 to
-    1.0.
+    Interpolated values touch P[0] at i==0.0, and touch the last P<n> at
+    i==1.0.  If given a third argument Q, it should be an ordered list of
+    scalars (matching the length of list P) to compare against the scalar
+    <i> instead.  Interpolated values instead touch P[<n>] at i==Q[<n>].
 
     '''
     if Q is None:
@@ -243,8 +216,8 @@ def __splinetest__():
         for t in range(1, 4*10+1):
             ay = (t-1)/40.0
             by = (t+0)/40.0
-            ax = cospline(ay, q)
-            bx = cospline(by, q)
+            ax = spline(ay, q)
+            bx = spline(by, q)
             d.add(d.line( ax*10, bx*10, stroke=svgwrite.rgb(10,10,16,'%')))
             print(repr(ax))
         d.save()
@@ -284,7 +257,7 @@ if __name__ == '__main__':
     an = -1
     for t in range(0, 4*10+1):
         ay = t/40.0
-        ax = cospline(ay, q)
+        ax = spline(ay, q)
         if 0 == t % 10:
             assert ax in q
             an = q.index(ax)
