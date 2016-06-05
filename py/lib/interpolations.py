@@ -172,6 +172,7 @@ def spline(i, *P, **kwargs):
     Any value of i outside the range (0, <n>) will return the P0 or P<n>
     point.
     '''
+    terminal = kwargs.get('terminal', False)
     if len(P) < 4:
         raise ValueError('need at least four points to interpolate spline')
     if terminal:
@@ -186,18 +187,20 @@ def spline(i, *P, **kwargs):
         ix += 1
     return __spline_4p(i-int(i), P[ix-1], P[ix], P[ix+1], P[ix+2])
 
-def cospline(i, Q, P):
+def cospline(i, P, Q=None):
     '''Find a point along a spline curve passing through all given points P.
     Points may be scalars, or vectors if arithmetic operators defined.
 
-    Takes exactly three arguments, a scalar and two lists or tuples with
-    at least four elements each.  The first list is a series of scalar
-    values in ascending or descending order, to be compared against the
-    given scalar i.
+    If given a third argument Q, it should be an ordered list of scalars
+    (matching the length of list P) to compare against the scalar <i>.
+    If not given, then Q is defined to be a smooth progression from 0 to
+    1.0.
 
     '''
-    if len(P) < 4:
-        raise ValueError('need at least four points to interpolate spline')
+    if Q is None:
+        Q = [ float(x)/(len(P)-1) for x in range(len(P)) ]
+    if len(P) < 2:
+        raise ValueError('need at least two points to interpolate spline')
     if len(Q) != len(P):
         raise ValueError('need two sequences of the same length')
     if Q[0] > Q[-1]:
@@ -231,9 +234,24 @@ def __splinetest__():
               spline(t/10.0+1,
                      V(1,11), V(2,22), V(3,33), V(4, 44), V(5,55)))
     print('--')
-    for t in range(0, 4*10+1):
-        print(t/10.0+1,
-              cospline(t/10.0+1, [ 1,2,3,4,5 ], [11,22,33,44,55]))
+    try:
+        import svgwrite
+        d = svgwrite.Drawing('splinetest.svg', profile='tiny')
+        q = [ V(10,11), V(20,33), V(30,22), V(40, 55), V(50,44) ]
+        for a in q:
+            d.add(d.circle(a*10, r=2))
+        for t in range(1, 4*10+1):
+            ay = (t-1)/40.0
+            by = (t+0)/40.0
+            ax = cospline(ay, q)
+            bx = cospline(by, q)
+            d.add(d.line( ax*10, bx*10, stroke=svgwrite.rgb(10,10,16,'%')))
+            print(repr(ax))
+        d.save()
+        print(repr(bx))
+    except:
+        print('problem with svgwrite; test skipped.')
+        raise
 
 if __name__ == '__main__':
 
@@ -261,5 +279,18 @@ if __name__ == '__main__':
                   bezier(0.8,  0.0, 1.0, 1.0, 1.0, 0.0) )
     assert bezier(1.0,  0.0, 1.0, 1.0, 1.0, 0.0) == 0.0
     assert bezier(1.0,  0.0, 1.0, 1.0, 1.0, 0.0) == 0.0
+
+    q = [ V(10,11), V(20,33), V(30,22), V(40, 55), V(50,44) ]
+    an = -1
+    for t in range(0, 4*10+1):
+        ay = t/40.0
+        ax = cospline(ay, q)
+        if 0 == t % 10:
+            assert ax in q
+            an = q.index(ax)
+        if 5 == t % 10:
+            assert not ax in q
+            assert q[an][0] < ax[0] < q[an+1][0]
+            assert q[an][1] < ax[1] < q[an+1][1] or q[an][1] > ax[1] > q[an+1][1]
 
     print('interpolations.py: all internal tests on this module passed.')
