@@ -66,7 +66,7 @@ def linear(*args):
     elif len(args) == 5:
         (xmin, xmax, x, hmin, hmax) = args
     else:
-        raise ValueError('linterp() takes 3 or 5 arguments')
+        raise ValueError('linear() takes 3 or 5 arguments')
     return ( ((x)-(xmin)) * ((hmax)-(hmin)) / ((xmax)-(xmin)) + (hmin) )
 
 #----------------------------------------------------------------------------
